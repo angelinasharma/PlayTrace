@@ -49,6 +49,65 @@ const MissionResult = ({ decisions, resources, riskLevel, failureType, onRestart
     : riskRatio < 0.25
       ? "You favored safe and measured responses, minimizing exposure to danger."
       : "You balanced risk and caution, adapting your approach to each situation.";
+  const avgDecisionTimeMs =
+    decisions.length > 0
+      ? decisions.reduce((s, d) => s + d.decisionTime, 0) / decisions.length
+      : 0;
+  const hesitationLabel =
+    avgDecisionTimeMs > 7000 ? "High" : avgDecisionTimeMs > 4000 ? "Moderate" : "Low";
+
+  let repeatedCount = 0;
+  for (let i = 1; i < decisions.length; i++) {
+    if (decisions[i].decisionType === decisions[i - 1].decisionType) repeatedCount++;
+  }
+  const consistency = decisions.length > 0 ? repeatedCount / decisions.length : 0;
+  const consistencyLabel =
+    consistency > 0.65 ? "High" : consistency > 0.35 ? "Moderate" : "Low";
+
+  const exploration = new Set(decisions.map((d) => d.decisionType)).size / 3;
+  const explorationLabel =
+    exploration > 0.75 ? "High" : exploration > 0.45 ? "Moderate" : "Low";
+
+  const behaviorInsights: string[] = [];
+  behaviorInsights.push(
+    riskRatio > 0.6
+      ? "Aggressive risk profile detected across mission-critical choices."
+      : riskRatio < 0.3
+        ? "Risk exposure remained controlled through conservative decisions."
+        : "Risk posture stayed balanced with adaptive trade-offs."
+  );
+  behaviorInsights.push(
+    consistency > 0.65
+      ? "Decision pattern was highly consistent, suggesting a stable play style."
+      : consistency < 0.35
+        ? "Decision pattern shifted often, indicating flexible situational adaptation."
+        : "Decision pattern showed moderate consistency with selective pivots."
+  );
+  if (exploration > 0.75) {
+    behaviorInsights.push("High exploration: you used a broad variety of choice types.");
+  } else if (exploration < 0.45) {
+    behaviorInsights.push("Low exploration: you relied on a narrow set of choice strategies.");
+  } else {
+    behaviorInsights.push("Moderate exploration: multiple strategies were used without over-rotation.");
+  }
+
+  const getOutcomeTag = (index: number) => {
+    const prev = index > 0 ? decisions[index - 1] : null;
+    const current = decisions[index];
+    const prevEnergy = prev?.energy ?? 100;
+    const prevSupplies = prev?.supplies ?? 100;
+    const prevMorale = prev?.morale ?? 100;
+    const prevRiskLevel = prev?.riskLevel ?? 0;
+
+    const resourceDelta =
+      (current.energy - prevEnergy) +
+      (current.supplies - prevSupplies) +
+      (current.morale - prevMorale);
+    const riskDelta = current.riskLevel - prevRiskLevel;
+    const score = resourceDelta - riskDelta * 1.5;
+
+    return score >= -10 ? "SUCCESS" : "FAIL";
+  };
 
   const gradeColors: Record<string, string> = {
     S: "hsl(var(--neon-cyan))",
@@ -115,8 +174,8 @@ const MissionResult = ({ decisions, resources, riskLevel, failureType, onRestart
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {[
             { label: "Avg Response", value: `${avgTime}s` },
+            { label: "Consistency", value: `${Math.round(consistency * 100)}%` },
             { label: "Levels Done", value: String(levelsCompleted) },
-            { label: "Phases Reached", value: `${phasesReached}/${TOTAL_PHASES}` },
             { label: "Risk Ratio", value: decisions.length > 0 ? `${Math.round(riskRatio * 100)}%` : "0%" },
           ].map((stat, idx) => (
             <motion.div
@@ -147,10 +206,42 @@ const MissionResult = ({ decisions, resources, riskLevel, failureType, onRestart
           </h3>
           <p className="font-display text-lg text-foreground uppercase tracking-wider mb-1">{pattern}</p>
           <p className="text-xs font-mono text-muted-foreground leading-relaxed">{patternDesc}</p>
+          <div className="flex gap-2 mt-3 flex-wrap">
+            <span className="text-[9px] font-display uppercase tracking-[0.16em] px-2 py-0.5 clip-corners border border-primary/30 text-primary bg-primary/10">
+              Hesitation: {hesitationLabel}
+            </span>
+            <span className="text-[9px] font-display uppercase tracking-[0.16em] px-2 py-0.5 clip-corners border border-neon-yellow/40 text-neon-yellow bg-neon-yellow/10">
+              Consistency: {consistencyLabel}
+            </span>
+            <span className="text-[9px] font-display uppercase tracking-[0.16em] px-2 py-0.5 clip-corners border border-morale/40 text-morale bg-morale/10">
+              Exploration: {explorationLabel}
+            </span>
+          </div>
           <div className="flex gap-4 mt-3">
             <span className="text-[10px] font-mono"><span className="text-critical">▲ Risky:</span> {riskyCount}</span>
             <span className="text-[10px] font-mono"><span className="text-morale">● Safe:</span> {safeCount}</span>
             <span className="text-[10px] font-mono"><span className="text-neon-yellow">◆ Neutral:</span> {neutralCount}</span>
+          </div>
+        </motion.div>
+
+        {/* Behavior Insights */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.55 }}
+          className="hud-panel p-5 relative overflow-hidden"
+        >
+          <div className="corner-deco corner-deco-tl" />
+          <div className="corner-deco corner-deco-br" />
+          <h3 className="font-display text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-3">
+            Behavior Insights
+          </h3>
+          <div className="space-y-2">
+            {behaviorInsights.map((insight, idx) => (
+              <p key={idx} className="text-xs font-mono text-muted-foreground leading-relaxed">
+                {insight}
+              </p>
+            ))}
           </div>
         </motion.div>
 
@@ -266,6 +357,7 @@ const MissionResult = ({ decisions, resources, riskLevel, failureType, onRestart
             {decisions.map((d, i) => {
               const event = missionEvents.find((e) => e.id === d.levelId);
               const typeColor = d.decisionType === "risky" ? "critical" : d.decisionType === "neutral" ? "neon-yellow" : "morale";
+              const outcomeTag = getOutcomeTag(i);
               return (
                 <motion.div
                   key={i}
@@ -292,6 +384,16 @@ const MissionResult = ({ decisions, resources, riskLevel, failureType, onRestart
                   </div>
                   <span className={`text-[9px] uppercase font-display tracking-wider text-${typeColor}`}>
                     {d.decisionType === "risky" ? "▲ RSK" : d.decisionType === "neutral" ? "◆ NTL" : "● SFE"}
+                  </span>
+                  <span
+                    className="text-[8px] uppercase font-display tracking-[0.16em] px-2 py-0.5 clip-corners"
+                    style={{
+                      color: outcomeTag === "SUCCESS" ? "hsl(var(--morale))" : "hsl(var(--critical))",
+                      background: outcomeTag === "SUCCESS" ? "hsl(var(--morale) / 0.12)" : "hsl(var(--critical) / 0.12)",
+                      border: outcomeTag === "SUCCESS" ? "1px solid hsl(var(--morale) / 0.4)" : "1px solid hsl(var(--critical) / 0.4)",
+                    }}
+                  >
+                    {outcomeTag}
                   </span>
                 </motion.div>
               );

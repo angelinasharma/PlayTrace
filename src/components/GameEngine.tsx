@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { missionEvents, getEventDescription, phaseLabels, RISK_THRESHOLD, type DecisionType } from "@/data/events";
 import ResourceBar from "./ResourceBar";
 import EventCard from "./EventCard";
@@ -24,13 +24,53 @@ export interface DecisionRecord {
 }
 
 interface Props {
-  profileType: string;
+  profile: string;
+  character: string;
   onRestart: () => void;
 }
 
 type FailureType = "resource" | "risk" | null;
 
-const GameEngine = ({ profileType, onRestart }: Props) => {
+interface BehavioralDecision {
+  eventId: string;
+  choiceType: DecisionType;
+  decisionTime: number;
+  timestamp: number;
+}
+
+function getAvgDecisionTime(decisions: BehavioralDecision[]) {
+  if (!decisions.length) return 0;
+  return decisions.reduce((sum, d) => sum + d.decisionTime, 0) / decisions.length;
+}
+
+function getConsistency(decisions: BehavioralDecision[]) {
+  let count = 0;
+  for (let i = 1; i < decisions.length; i++) {
+    if (decisions[i].choiceType === decisions[i - 1].choiceType) {
+      count++;
+    }
+  }
+  return decisions.length ? count / decisions.length : 0;
+}
+
+function getExploration(decisions: BehavioralDecision[]) {
+  const unique = new Set(decisions.map((d) => d.choiceType));
+  return unique.size / 3;
+}
+
+function classifyPlayer(results: {
+  avgDecisionTime: number;
+  riskRatio: number;
+  consistency: number;
+  exploration: number;
+}) {
+  if (results.riskRatio > 0.7) return "Risk Taker";
+  if (results.riskRatio < 0.3) return "Cautious";
+  return "Balanced";
+}
+
+const GameEngine = ({ profile, character: _character, onRestart }: Props) => {
+  const profileType = profile;
   const [eventIndex, setEventIndex] = useState(0);
   const [resources, setResources] = useState({ energy: 100, supplies: 100, morale: 100 });
   const [prevResources, setPrevResources] = useState({ energy: 100, supplies: 100, morale: 100 });
@@ -41,13 +81,32 @@ const GameEngine = ({ profileType, onRestart }: Props) => {
   const [failureType, setFailureType] = useState<FailureType>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [metrics, setMetrics] = useState({
+    decisions: [] as BehavioralDecision[],
+    startTime: Date.now(),
+    risky: 0,
+    safe: 0,
+    neutral: 0,
+  });
   const [eventDescriptions] = useState(() =>
     missionEvents.map((e) => getEventDescription(e))
   );
-  const eventStartTime = useRef(Date.now());
 
   const currentEvent = missionEvents[eventIndex];
   const currentPhase = currentEvent?.phase ?? 3;
+
+  useEffect(() => {
+    if (!gameOver) return;
+    const results = {
+      avgDecisionTime: getAvgDecisionTime(metrics.decisions),
+      riskRatio: metrics.risky / (metrics.decisions.length || 1),
+      consistency: getConsistency(metrics.decisions),
+      exploration: getExploration(metrics.decisions),
+    };
+
+    console.log("Player Results:", results);
+    console.log("Player Type:", classifyPlayer(results));
+  }, [gameOver, metrics]);
 
   // Calculate progress
   const phaseEvents = missionEvents.filter((e) => e.phase === currentPhase);
@@ -61,7 +120,22 @@ const GameEngine = ({ profileType, onRestart }: Props) => {
       if (!currentEvent || processing) return;
 
       const choice = currentEvent.choices[choiceIndex];
-      const decisionTime = Date.now() - eventStartTime.current;
+      const decisionTime = Date.now() - metrics.startTime;
+      const choiceType = choice.decisionType || "neutral";
+      const decision = {
+        eventId: currentEvent.id,
+        choiceType,
+        decisionTime,
+        timestamp: Date.now(),
+      };
+
+      setMetrics((prev) => ({
+        ...prev,
+        decisions: [...prev.decisions, decision],
+        risky: prev.risky + (choiceType === "risky" ? 1 : 0),
+        safe: prev.safe + (choiceType === "safe" ? 1 : 0),
+        neutral: prev.neutral + (choiceType === "neutral" ? 1 : 0),
+      }));
 
       // Show processing state
       setProcessing(true);
@@ -130,14 +204,17 @@ const GameEngine = ({ profileType, onRestart }: Props) => {
             setGameOver(true);
           } else {
             setEventIndex(eventIndex + 1);
-            eventStartTime.current = Date.now();
+            setMetrics((prev) => ({
+              ...prev,
+              startTime: Date.now(),
+            }));
           }
           setStatusMessage(null);
           setProcessing(false);
         }, 1500);
       }, 700);
     },
-    [currentEvent, resources, decisions, eventIndex, profileType, riskLevel, processing]
+    [currentEvent, resources, decisions, eventIndex, profileType, riskLevel, processing, metrics.startTime]
   );
 
   if (gameOver) {

@@ -1,17 +1,32 @@
 import { useState } from "react";
 import ProfileSelection from "@/components/ProfileSelection";
+import CharacterSelect from "@/components/CharacterSelect";
 import GameEngine from "@/components/GameEngine";
 
 const Index = () => {
-  const [profileType, setProfileType] = useState<string | null>(null);
+  const [selectedProfile, setSelectedProfile] = useState<string | null>(null);
+  const [selectedCharacter, setSelectedCharacter] = useState<string | null>(null);
 
-  const handleRestart = () => setProfileType(null);
+  const handleRestart = () => {
+    setSelectedProfile(null);
+    setSelectedCharacter(null);
+  };
 
-  if (!profileType) {
-    return <ProfileSelection onSelect={setProfileType} />;
+  if (!selectedProfile) {
+    return <ProfileSelection onSelect={setSelectedProfile} />;
   }
 
-  return <GameEngine profileType={profileType} onRestart={handleRestart} />;
+  if (!selectedCharacter) {
+    return <CharacterSelect onSelect={setSelectedCharacter} />;
+  }
+
+  return (
+    <GameEngine
+      profile={selectedProfile}
+      character={selectedCharacter}
+      onRestart={handleRestart}
+    />
+  );
 };
 
 export default Index;
