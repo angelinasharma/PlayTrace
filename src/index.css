@@ -104,3 +104,121 @@
   100% { background-color: transparent; }
 }
 .animate-flash { animation: flash 0.4s ease-out; }
+
+/* Mobile-First Layout Overrides */
+@media (max-width: 768px) {
+  /* 1. REMOVE HORIZONTAL SCROLL & CONTAINER FIXES */
+  html, body, #root {
+    overflow-x: hidden !important;
+    width: 100% !important;
+  }
+  
+  * {
+    box-sizing: border-box !important;
+    max-width: 100% !important;
+  }
+
+  /* Replace 100vw with 100% if any element uses it */
+  .w-screen {
+    width: 100% !important;
+  }
+
+  /* 2. TOP BAR RESTRUCTURE & 3. METRICS LAYOUT */
+  .min-h-screen > .border-b > .grid.grid-cols-3 {
+    display: grid !important;
+    grid-template-columns: 1fr auto !important;
+    grid-template-rows: auto auto !important;
+    gap: 1rem 0.5rem !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+  
+  /* Row 1, Col 1: Session X/Y */
+  .min-h-screen > .border-b > .grid.grid-cols-3 > div:nth-child(1) {
+    grid-column: 1 / 2 !important;
+    grid-row: 1 / 2 !important;
+    justify-self: start !important;
+  }
+  
+  /* Row 1, Col 2: Timer */
+  .min-h-screen > .border-b > .grid.grid-cols-3 > div:nth-child(3) {
+    grid-column: 2 / 3 !important;
+    grid-row: 1 / 2 !important;
+    justify-content: flex-end !important;
+    width: 100% !important;
+  }
+  
+  /* Hide the step dots in timer to save space on mobile */
+  .min-h-screen > .border-b > .grid.grid-cols-3 > div:nth-child(3) > div:first-child {
+    display: none !important;
+  }
+  
+  /* Row 2: System metrics (Stability, Coherence, Buffer) */
+  .min-h-screen > .border-b > .grid.grid-cols-3 > div:nth-child(2) {
+    grid-column: 1 / -1 !important;
+    grid-row: 2 / 3 !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    gap: 0.5rem !important;
+  }
+  
+  /* Fix metric columns */
+  .min-h-screen > .border-b > .grid.grid-cols-3 > div:nth-child(2) > div {
+    min-width: 0 !important;
+    flex: 1 1 0% !important;
+  }
+  
+  /* Scale down metric text and fit the status bar */
+  .min-h-screen > .border-b > .grid.grid-cols-3 > div:nth-child(2) .text-\[10px\] {
+    font-size: 8px !important;
+    letter-spacing: 0.1em !important;
+  }
+  .min-h-screen > .border-b > .grid.grid-cols-3 > div:nth-child(2) .w-24 {
+    width: 100% !important;
+  }
+
+  /* 4. TYPOGRAPHY SCALING */
+  .font-display.text-\[42px\] {
+    font-size: 32px !important;
+    line-height: 1.2 !important;
+  }
+  
+  .font-display.text-3xl {
+    font-size: 24px !important;
+    margin-bottom: 1.5rem !important;
+  }
+
+  /* 5. FULL-WIDTH INTERACTIONS */
+  .mt-8.flex.items-center.gap-3 {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  
+  .mt-8.flex.items-center.gap-3 > button {
+    width: 100% !important;
+    padding-top: 1.15rem !important;
+    padding-bottom: 1.15rem !important;
+  }
+  
+  /* Welcome button full width */
+  .px-12.py-3\.5 {
+    width: 100% !important;
+  }
+
+  /* 7. SPACING SYSTEM */
+  .px-8 {
+    padding-left: 1.25rem !important;
+    padding-right: 1.25rem !important;
+  }
+  
+  .px-6 {
+    padding-left: 1.25rem !important;
+    padding-right: 1.25rem !important;
+  }
+
+  /* 8. SLIDER / INTERACTION AREA */
+  .flex.justify-between.mt-2.text-\[10px\] {
+    font-size: 9px !important;
+    letter-spacing: 0.15em !important;
+  }
+}
