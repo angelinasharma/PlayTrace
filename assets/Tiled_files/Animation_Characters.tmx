@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.9" tiledversion="1.9.2" orientation="orthogonal" renderorder="right-down" width="24" height="11" tilewidth="16" tileheight="16" infinite="0" nextlayerid="5" nextobjectid="1">
+<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="24" height="11" tilewidth="16" tileheight="16" infinite="0" nextlayerid="5" nextobjectid="1">
  <tileset firstgid="1" name="Boy" tilewidth="16" tileheight="16" tilecount="432" columns="24">
-  <image source="../Main_Characters/Char_Boy.png" width="384" height="288"/>
+  <image source="../characters/boy.png" width="384" height="288"/>
   <tile id="1">
    <animation>
     <frame tileid="1" duration="150"/>
@@ -487,7 +487,7 @@
   </tile>
  </tileset>
  <tileset firstgid="433" name="fire" tilewidth="16" tileheight="16" tilecount="24" columns="12">
-  <image source="../Main_Characters/Char_fire.png" width="192" height="32"/>
+  <image source="../characters/Char_fire.png" width="192" height="32"/>
   <tile id="1">
    <animation>
     <frame tileid="1" duration="150"/>
@@ -520,7 +520,7 @@
   </tile>
  </tileset>
  <tileset firstgid="457" name="Girl" tilewidth="16" tileheight="16" tilecount="432" columns="24">
-  <image source="../Main_Characters/Char_Girl.png" width="384" height="288"/>
+  <image source="../characters/girl.png" width="384" height="288"/>
   <tile id="0">
    <animation>
     <frame tileid="0" duration="150"/>
@@ -1054,7 +1054,7 @@
   </tile>
  </tileset>
  <tileset firstgid="889" name="Robot" tilewidth="16" tileheight="16" tilecount="432" columns="24">
-  <image source="../Main_Characters/Char_Robot.png" width="384" height="288"/>
+  <image source="../characters/robot.png" width="384" height="288"/>
   <tile id="0">
    <animation>
     <frame tileid="0" duration="150"/>

@@ -8,6 +8,7 @@ import StatusMessage from "./StatusMessage";
 import ProgressBar from "./ProgressBar";
 import ScanlineOverlay from "./ScanlineOverlay";
 import HexGrid from "./HexGrid";
+import Player from "@/components/Player";
 
 export interface DecisionRecord {
   profileType: string;
@@ -238,32 +239,40 @@ const GameEngine = ({ profile, character: _character, onRestart }: Props) => {
     <div className="min-h-screen flex flex-col relative grid-lines">
       <ScanlineOverlay />
       <HexGrid />
-      <div className="pointer-events-none absolute inset-0 z-[1]" style={{
-        background: "radial-gradient(circle at 50% 45%, transparent 0%, hsl(222 47% 3% / 0.45) 75%, hsl(222 47% 3% / 0.8) 100%)",
-      }} />
+      <div className="pointer-events-none absolute inset-0 z-[1] bg-black/48" aria-hidden />
+      <div
+        className="pointer-events-none absolute inset-0 z-[1]"
+        style={{
+          background:
+            "radial-gradient(circle at 50% 45%, transparent 0%, hsl(222 47% 3% / 0.55) 72%, hsl(222 47% 3% / 0.88) 100%)",
+        }}
+        aria-hidden
+      />
+      <Player character={_character} />
 
+      <div className="game-container flex flex-1 flex-col">
       {/* HUD Header */}
       <header
-        className="sticky top-0 z-20 border-b p-3"
+        className="relative z-20 border-b p-3 sm:p-4"
         style={{
           background: 'linear-gradient(180deg, hsl(222 47% 6% / 0.65), hsl(222 47% 4% / 0.35))',
           borderColor: 'hsl(var(--neon-cyan) / 0.22)',
           backdropFilter: 'blur(18px)',
         }}
       >
-        <div className="max-w-4xl mx-auto space-y-2">
+        <div className="mx-auto w-full max-w-[1200px] space-y-2 px-4 sm:px-6">
           {/* Top bar */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-y-2">
+            <div className="flex min-w-0 items-center gap-2">
               <span className="rec-dot" />
-              <span className="text-[10px] font-display font-bold uppercase tracking-[0.2em] text-primary">
+              <span className="text-[10px] font-display font-bold uppercase tracking-[0.2em] text-primary/85">
                 PlayTrace
               </span>
               <div className="w-12 h-px ml-2" style={{ background: 'linear-gradient(90deg, hsl(var(--neon-cyan) / 0.5), transparent)' }} />
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <span
-                className="text-[9px] font-display uppercase tracking-[0.15em] px-2.5 py-0.5 clip-corners"
+                className="text-[9px] font-display uppercase tracking-[0.15em] px-2.5 py-0.5 clip-corners opacity-75"
                 style={{
                   background: 'hsl(var(--neon-magenta) / 0.15)',
                   border: '1px solid hsl(var(--neon-magenta) / 0.3)',
@@ -273,7 +282,7 @@ const GameEngine = ({ profile, character: _character, onRestart }: Props) => {
                 {profileType.replace("-", " ")}
               </span>
               <span
-                className="text-[9px] font-display uppercase tracking-[0.15em] px-2.5 py-0.5 clip-corners"
+                className="text-[9px] font-display uppercase tracking-[0.15em] px-2.5 py-0.5 clip-corners opacity-75"
                 style={{
                   background: `hsl(var(--neon-yellow) / 0.15)`,
                   border: `1px solid hsl(var(--neon-yellow) / 0.3)`,
@@ -285,71 +294,80 @@ const GameEngine = ({ profile, character: _character, onRestart }: Props) => {
             </div>
           </div>
 
-          {/* Resource bars */}
-          <div className="grid grid-cols-4 gap-2">
-            <ResourceBar
-              label="Energy"
-              icon={
-                <svg viewBox="0 0 16 16" className="w-4 h-4" fill="none">
-                  <path
-                    d="M7 1L3 9h3v6l4-8H7V1z"
-                    fill="currentColor"
-                  />
-                </svg>
-              }
-              value={resources.energy}
-              maxValue={100}
-              colorClass="bg-energy"
-              prevValue={prevResources.energy}
-            />
-            <ResourceBar
-              label="Supplies"
-              icon={
-                <svg viewBox="0 0 16 16" className="w-4 h-4" fill="none">
-                  <rect x="3" y="4" width="10" height="8" rx="1" stroke="currentColor" strokeWidth="1.2" />
-                  <path d="M3 7h10" stroke="currentColor" strokeWidth="1.2" />
-                </svg>
-              }
-              value={resources.supplies}
-              maxValue={100}
-              colorClass="bg-supplies"
-              prevValue={prevResources.supplies}
-            />
-            <ResourceBar
-              label="Morale"
-              icon={
-                <svg viewBox="0 0 16 16" className="w-4 h-4" fill="none">
-                  <path
-                    d="M8 13s-4-2.4-4-5.2C4 5.2 5.2 4 6.6 4c.7 0 1.3.3 1.4.9C8.1 4.3 8.7 4 9.4 4 10.8 4 12 5.2 12 7.8 12 10.6 8 13 8 13z"
-                    fill="currentColor"
-                  />
-                </svg>
-              }
-              value={resources.morale}
-              maxValue={100}
-              colorClass="bg-morale"
-              prevValue={prevResources.morale}
-            />
-            <ResourceBar
-              label="Risk"
-              icon={
-                <svg viewBox="0 0 16 16" className="w-4 h-4" fill="none">
-                  <path
-                    d="M8 2l6 11H2L8 2z"
-                    stroke="currentColor"
-                    strokeWidth="1.2"
-                    fill="none"
-                  />
-                  <path d="M8 6v4" stroke="currentColor" strokeWidth="1.2" />
-                  <circle cx="8" cy="11.2" r="0.8" fill="currentColor" />
-                </svg>
-              }
-              value={riskLevel}
-              maxValue={100}
-              colorClass="bg-critical"
-              prevValue={prevRisk}
-              invertCritical
-            />
+          {/* Resource bars: primary cluster + danger (risk) */}
+          <div className="flex flex-col gap-3 md:flex-row md:items-stretch">
+            <div className="grid min-w-0 flex-1 grid-cols-3 gap-2">
+              <ResourceBar
+                label="Energy"
+                icon={
+                  <svg viewBox="0 0 16 16" className="w-4 h-4" fill="none">
+                    <path
+                      d="M7 1L3 9h3v6l4-8H7V1z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                }
+                value={resources.energy}
+                maxValue={100}
+                colorClass="bg-energy"
+                prevValue={prevResources.energy}
+              />
+              <ResourceBar
+                label="Supplies"
+                icon={
+                  <svg viewBox="0 0 16 16" className="w-4 h-4" fill="none">
+                    <rect x="3" y="4" width="10" height="8" rx="1" stroke="currentColor" strokeWidth="1.2" />
+                    <path d="M3 7h10" stroke="currentColor" strokeWidth="1.2" />
+                  </svg>
+                }
+                value={resources.supplies}
+                maxValue={100}
+                colorClass="bg-supplies"
+                prevValue={prevResources.supplies}
+              />
+              <ResourceBar
+                label="Morale"
+                icon={
+                  <svg viewBox="0 0 16 16" className="w-4 h-4" fill="none">
+                    <path
+                      d="M8 13s-4-2.4-4-5.2C4 5.2 5.2 4 6.6 4c.7 0 1.3.3 1.4.9C8.1 4.3 8.7 4 9.4 4 10.8 4 12 5.2 12 7.8 12 10.6 8 13 8 13z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                }
+                value={resources.morale}
+                maxValue={100}
+                colorClass="bg-morale"
+                prevValue={prevResources.morale}
+              />
+            </div>
+            <div
+              className="shrink-0 border-t border-border/35 pt-3 md:w-[min(100%,240px)] md:border-l md:border-t-0 md:pl-3 md:pt-0"
+              role="region"
+              aria-label="Mission risk level"
+            >
+              <ResourceBar
+                label="Risk"
+                variant="emphasized"
+                icon={
+                  <svg viewBox="0 0 16 16" className="w-4 h-4" fill="none">
+                    <path
+                      d="M8 2l6 11H2L8 2z"
+                      stroke="currentColor"
+                      strokeWidth="1.2"
+                      fill="none"
+                    />
+                    <path d="M8 6v4" stroke="currentColor" strokeWidth="1.2" />
+                    <circle cx="8" cy="11.2" r="0.8" fill="currentColor" />
+                  </svg>
+                }
+                value={riskLevel}
+                maxValue={100}
+                colorClass="bg-critical"
+                prevValue={prevRisk}
+                invertCritical
+              />
+            </div>
           </div>
 
           {/* Progress bar */}
@@ -364,7 +382,7 @@ const GameEngine = ({ profile, character: _character, onRestart }: Props) => {
       </header>
 
       {/* Main content */}
-      <main className="flex-1 flex flex-col justify-center max-w-4xl mx-auto w-full p-4 gap-4 relative z-10">
+      <main className="relative z-10 mx-auto flex w-full max-w-[1200px] flex-1 flex-col justify-center gap-6 px-4 py-4 sm:px-6 sm:py-6">
         <EventCard
           title={currentEvent.title}
           description={eventDescriptions[eventIndex]}
@@ -373,19 +391,26 @@ const GameEngine = ({ profile, character: _character, onRestart }: Props) => {
           phase={currentPhase}
         />
         <StatusMessage message={statusMessage} />
-        <DecisionButtons choices={currentEvent.choices} onChoose={handleChoice} disabled={processing} />
+        <div className="mt-6 pt-2">
+          <DecisionButtons choices={currentEvent.choices} onChoose={handleChoice} disabled={processing} />
+        </div>
       </main>
 
       {/* Bottom status bar */}
-      <footer className="sticky bottom-0 z-20 py-2 px-4 flex items-center justify-between text-[8px] font-mono text-muted-foreground/40 tracking-wider" style={{
-        background: 'hsl(222 47% 5% / 0.9)',
-        borderTop: '1px solid hsl(var(--neon-cyan) / 0.08)',
-      }}>
+      <footer
+        className="relative z-20 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-2 text-[8px] font-mono text-muted-foreground/45 tracking-wider sm:px-6"
+        style={{
+          background: "hsl(222 47% 5% / 0.9)",
+          borderTop: "1px solid hsl(var(--neon-cyan) / 0.08)",
+          paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))",
+        }}
+      >
         <span>SYS.STATUS: {riskLevel > 60 ? "WARNING" : "NOMINAL"}</span>
         <span>RISK.LVL: {riskLevel}%</span>
         <span>PHASE: {currentPhase}/{3}</span>
         <span>MISSION CLOCK: ACTIVE</span>
       </footer>
+      </div>
     </div>
   );
 };
