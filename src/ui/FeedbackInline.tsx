@@ -5,6 +5,7 @@
  */
 
 import { useState } from "react";
+import { submitFeedback } from "@/lib/api";
 
 interface Props {
   sessionId: string;
@@ -26,6 +27,12 @@ export function FeedbackInline({ sessionId }: Props) {
       feedback: comment.trim(),
       timestamp: new Date().toISOString(),
     };
+    
+    submitFeedback({
+      sessionId,
+      rating,
+      feedback: comment.trim(),
+    });
     
     console.log("Feedback Submitted:", payload);
     setSubmitted(true);

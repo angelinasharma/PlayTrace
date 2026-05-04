@@ -24,6 +24,7 @@ import {
   ORDERED_IDS,
 } from "@/core/scenarioEngine";
 import { InterruptOverlay } from "@/ui/InterruptOverlay";
+import { logDecision } from "@/lib/api";
 import type { Action, DecisionRecord, DecisionLogEntry, SystemMetrics, InterruptEvent } from "@/core/types";
 
 const METRIC_LABELS: Record<keyof Pick<SystemMetrics, "stability" | "trust" | "buffer">, string> = {
@@ -33,10 +34,11 @@ const METRIC_LABELS: Record<keyof Pick<SystemMetrics, "stability" | "trust" | "b
 };
 
 interface Props {
+  sessionId: string | null;
   onSessionComplete: (records: DecisionRecord[], log: DecisionLogEntry[]) => void;
 }
 
-export function ScenarioEngine({ onSessionComplete }: Props) {
+export function ScenarioEngine({ sessionId, onSessionComplete }: Props) {
   const [metrics, setMetrics] = useState<SystemMetrics>(INITIAL_METRICS);
   const [currentScenarioId, setCurrentScenarioId] = useState("s1");
   const [riskLevel, setRiskLevel] = useState(0.5);
@@ -131,6 +133,16 @@ export function ScenarioEngine({ onSessionComplete }: Props) {
     setDecisionHistory(updatedHistory);
     setDecisionLog(updatedLog);
     setMetrics(nextMetrics);
+
+    // Backend logging
+    if (sessionId) {
+      logDecision({
+        sessionId,
+        stepId: scenario.id,
+        decision: action.id,
+        tags: action.tags,
+      });
+    }
 
     setTimeout(() => {
       if (!nextId) {
