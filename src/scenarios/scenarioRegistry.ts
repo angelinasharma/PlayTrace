@@ -1,37 +1,38 @@
-export type UserType = "Gaming" | "Creative" | "Analytical" | "General";
+/**
+ * scenarioRegistry.ts
+ * Authoritative registry of all scenario definitions.
+ * Scenarios are the unit of interaction in the behavioral engine.
+ */
 
-export interface Action {
-  id: string;
-  label: string;
-  hint?: string;
-  base: { stability: number; trust: number; time: number };
-  riskCurve: { stability: number; trust: number; time: number };
-}
+import type { Action, Scenario, InterruptEvent } from "@/core/types";
 
-export interface Scenario {
-  id: string;
-  eyebrow: string;
-  text: string | ((state: any) => string);
-  timeLimit: number;
-  actions: Action[];
-  tag?: "repeat" | "high-pressure" | "low-pressure";
-  isInterrupt?: boolean;
-  leftLabel?: string;
-  rightLabel?: string;
-  mode?: "standard" | "interrupt" | "allocation" | "ordering" | "reversal" | "blind";
-}
-
-const R1 = { base: { stability: 5, trust: 2, time: -10 }, riskCurve: { stability: 2, trust: 0, time: 2 } };
-const R2 = { base: { stability: 3, trust: 1, time: -5 }, riskCurve: { stability: 4, trust: 2, time: 4 } };
-const R3 = { base: { stability: 0, trust: 2, time: 0 }, riskCurve: { stability: -5, trust: 5, time: -2 } };
-const R4 = { base: { stability: -4, trust: 0, time: 5 }, riskCurve: { stability: -10, trust: -5, time: 8 } };
-const R5 = { base: { stability: -8, trust: -4, time: 10 }, riskCurve: { stability: -20, trust: -10, time: 15 } };
+// Risk profile presets — reusable across scenarios
+const R1: Pick<Action, "base" | "riskCurve"> = {
+  base: { stability: 5, trust: 2, buffer: -10 },
+  riskCurve: { stability: 2, trust: 0, buffer: 2 },
+};
+const R2: Pick<Action, "base" | "riskCurve"> = {
+  base: { stability: 3, trust: 1, buffer: -5 },
+  riskCurve: { stability: 4, trust: 2, buffer: 4 },
+};
+const R3: Pick<Action, "base" | "riskCurve"> = {
+  base: { stability: 0, trust: 2, buffer: 0 },
+  riskCurve: { stability: -5, trust: 5, buffer: -2 },
+};
+const R4: Pick<Action, "base" | "riskCurve"> = {
+  base: { stability: -4, trust: 0, buffer: 5 },
+  riskCurve: { stability: -10, trust: -5, buffer: 8 },
+};
+const R5: Pick<Action, "base" | "riskCurve"> = {
+  base: { stability: -8, trust: -4, buffer: 10 },
+  riskCurve: { stability: -20, trust: -10, buffer: 15 },
+};
 
 export const SCENARIOS: Scenario[] = [
   {
     id: "s1",
     eyebrow: "Initial Issue",
-    text: "You’re close to finishing something important.\nEverything has been building toward this moment.\n\nThen you notice something isn’t right.",
+    text: "You're close to finishing something important.\nEverything has been building toward this moment.\n\nThen you notice something isn't right.",
     timeLimit: 25,
     mode: "standard",
     actions: [
@@ -84,7 +85,8 @@ export const SCENARIOS: Scenario[] = [
   {
     id: "s5",
     eyebrow: "Consequence",
-    text: (state) => `The impact of your earlier decisions is cascading.\nA new fracture has appeared in the system.\n\nCurrent stability is holding at ${Math.round(state.stability)}%.`,
+    text: (metrics) =>
+      `The impact of your earlier decisions is cascading.\nA new fracture has appeared in the system.\n\nCurrent stability is holding at ${Math.round(metrics.stability)}%.`,
     timeLimit: 22,
     mode: "reversal",
     actions: [
@@ -125,7 +127,7 @@ export const SCENARIOS: Scenario[] = [
   {
     id: "s8",
     eyebrow: "Repeated Pattern",
-    text: "You’ve seen this exact shape of failure before.\nThe same pattern is surfacing just before completion.\n\nThe system is testing your consistency.",
+    text: "You've seen this exact shape of failure before.\nThe same pattern is surfacing just before completion.\n\nThe system is testing your consistency.",
     timeLimit: 16,
     tag: "repeat",
     mode: "ordering",
@@ -166,11 +168,4 @@ export const SCENARIOS: Scenario[] = [
   },
 ];
 
-export interface InterruptEvent {
-  id: string;
-  text: string;
-  timeLimit: number;
-  options: { id: string; label: string; impact: { stability: number; trust: number; time: number } }[];
-}
-
-export const INTERRUPTS: InterruptEvent[] = [];
+export const INTERRUPT_EVENTS: InterruptEvent[] = [];
