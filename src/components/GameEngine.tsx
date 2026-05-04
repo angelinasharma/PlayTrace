@@ -82,6 +82,8 @@ const GameEngine = ({ profile, character: _character, onRestart }: Props) => {
   const [failureType, setFailureType] = useState<FailureType>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sessionStartTime] = useState(Date.now());
   const [metrics, setMetrics] = useState({
     decisions: [] as BehavioralDecision[],
     startTime: Date.now(),
@@ -103,11 +105,46 @@ const GameEngine = ({ profile, character: _character, onRestart }: Props) => {
       riskRatio: metrics.risky / (metrics.decisions.length || 1),
       consistency: getConsistency(metrics.decisions),
       exploration: getExploration(metrics.decisions),
+      totalTimeSpentMs: Date.now() - sessionStartTime,
+      riskyDecisions: metrics.risky,
+      safeDecisions: metrics.safe,
+      neutralDecisions: metrics.neutral
     };
 
     console.log("Player Results:", results);
     console.log("Player Type:", classifyPlayer(results));
-  }, [gameOver, metrics]);
+
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+    if (sessionId) {
+      fetch(`${API_URL}/api/sessions/${sessionId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          endedAt: Date.now(),
+          completed: failureType === null,
+          failureType,
+          finalResources: resources,
+          finalRiskLevel: riskLevel,
+          metrics: results
+        })
+      }).catch(err => console.error("Failed to update session:", err));
+    }
+  }, [gameOver, metrics, sessionId, failureType, resources, riskLevel]);
+
+  useEffect(() => {
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    fetch(`${API_URL}/api/sessions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profileType, character: _character })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.sessionId) setSessionId(data.sessionId);
+    })
+    .catch(err => console.error("Failed to create session:", err));
+  }, [profileType, _character]);
 
   // Calculate progress
   const phaseEvents = missionEvents.filter((e) => e.phase === currentPhase);
@@ -180,6 +217,16 @@ const GameEngine = ({ profile, character: _character, onRestart }: Props) => {
           localStorage.setItem("playtrace-log", JSON.stringify(existing));
         } catch { /* ignore */ }
 
+        // Save to backend
+        if (sessionId) {
+          const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+          fetch(`${API_URL}/api/sessions/${sessionId}/decisions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(record)
+          }).catch(err => console.error("Failed to save decision:", err));
+        }
+
         // Check failure
         if (newResources.energy <= 0 || newResources.supplies <= 0 || newResources.morale <= 0) {
           setTimeout(() => {
@@ -215,7 +262,7 @@ const GameEngine = ({ profile, character: _character, onRestart }: Props) => {
         }, 1500);
       }, 700);
     },
-    [currentEvent, resources, decisions, eventIndex, profileType, riskLevel, processing, metrics.startTime]
+    [currentEvent, resources, decisions, eventIndex, profileType, riskLevel, processing, metrics.startTime, sessionId]
   );
 
   if (gameOver) {
@@ -348,7 +395,6 @@ const GameEngine = ({ profile, character: _character, onRestart }: Props) => {
             >
               <ResourceBar
                 label="Risk"
-                variant="emphasized"
                 icon={
                   <svg viewBox="0 0 16 16" className="w-4 h-4" fill="none">
                     <path
