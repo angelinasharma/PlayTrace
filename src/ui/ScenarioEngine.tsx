@@ -11,7 +11,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { SCENARIOS } from "@/scenarios/scenarioRegistry";
+import { ALL_SCENARIOS } from "@/scenarios/scenarioRegistry";
 import { applyImpact, adaptTimeLimit, previewImpact, INITIAL_METRICS } from "@/core/riskModel";
 import {
   calibrationLabel,
@@ -19,10 +19,12 @@ import {
   resolveDefaultAction,
   resolveScenarioText,
   resolveTimeoutAction,
-  isLastScenario,
+  getNextScenarioId,
+  SCENARIO_MAP,
+  ORDERED_IDS,
 } from "@/core/scenarioEngine";
 import { InterruptOverlay } from "@/ui/InterruptOverlay";
-import type { Action, DecisionRecord, SystemMetrics, InterruptEvent } from "@/core/types";
+import type { Action, DecisionRecord, DecisionLogEntry, SystemMetrics, InterruptEvent } from "@/core/types";
 
 const METRIC_LABELS: Record<keyof Pick<SystemMetrics, "stability" | "trust" | "buffer">, string> = {
   stability: "STABILITY",
@@ -31,22 +33,23 @@ const METRIC_LABELS: Record<keyof Pick<SystemMetrics, "stability" | "trust" | "b
 };
 
 interface Props {
-  onSessionComplete: (records: DecisionRecord[]) => void;
+  onSessionComplete: (records: DecisionRecord[], log: DecisionLogEntry[]) => void;
 }
 
 export function ScenarioEngine({ onSessionComplete }: Props) {
   const [metrics, setMetrics] = useState<SystemMetrics>(INITIAL_METRICS);
-  const [scenarioIndex, setScenarioIndex] = useState(0);
+  const [currentScenarioId, setCurrentScenarioId] = useState("s1");
   const [riskLevel, setRiskLevel] = useState(0.5);
   const [selectedAction, setSelectedAction] = useState<Action | null>(null);
   const [decisionHistory, setDecisionHistory] = useState<DecisionRecord[]>([]);
-  const [activeInterrupt, setActiveInterrupt] = useState<typeof SCENARIOS[number] | null>(null);
+  const [decisionLog, setDecisionLog] = useState<DecisionLogEntry[]>([]);
+  const [activeInterrupt, setActiveInterrupt] = useState<typeof ALL_SCENARIOS[number] | null>(null);
   const [isCommitting, setIsCommitting] = useState(false);
   const [reversalBlockedId, setReversalBlockedId] = useState<string | null>(null);
   const [priorityOrdering, setPriorityOrdering] = useState<Action[]>([]);
 
-  const scenario = SCENARIOS[scenarioIndex];
-  const timeLimit = useMemo(() => adaptTimeLimit(scenario.timeLimit, metrics), [scenario, scenarioIndex]);
+  const scenario = SCENARIO_MAP.get(currentScenarioId)!;
+  const timeLimit = useMemo(() => adaptTimeLimit(scenario.timeLimit, metrics), [scenario, currentScenarioId]);
   const [remainingTime, setRemainingTime] = useState(timeLimit);
 
   const sessionStartRef = useRef<number>(performance.now());
@@ -62,7 +65,7 @@ export function ScenarioEngine({ onSessionComplete }: Props) {
     setPriorityOrdering(scenario.actions);
     setSelectedAction(resolveDefaultAction(scenario));
     setIsCommitting(false);
-  }, [scenarioIndex, timeLimit, scenario]);
+  }, [currentScenarioId, timeLimit, scenario]);
 
   // Passive decay timer
   useEffect(() => {
@@ -96,7 +99,8 @@ export function ScenarioEngine({ onSessionComplete }: Props) {
     if (isCommitting) return;
     setIsCommitting(true);
 
-    const { metrics: nextMetrics, isPatternBreaker } = applyImpact(metrics, action, risk, scenarioIndex);
+    const { metrics: nextMetrics, isPatternBreaker } = applyImpact(metrics, action, risk, ORDERED_IDS.indexOf(currentScenarioId));
+    const nextId = getNextScenarioId(scenario, action);
 
     const record: DecisionRecord = {
       scenarioId: scenario.id,
@@ -110,17 +114,29 @@ export function ScenarioEngine({ onSessionComplete }: Props) {
       metricsAfter: nextMetrics,
       tag: scenario.tag,
       isPatternBreaker,
+      nextScenarioId: nextId ?? undefined,
+      tags: action.tags,
+    };
+
+    const logEntry: DecisionLogEntry = {
+      stepId: scenario.id,
+      choice: action.id,
+      tags: action.tags ?? [],
+      timestamp: Date.now(),
+      nextStepId: nextId,
     };
 
     const updatedHistory = [...decisionHistory, record];
+    const updatedLog = [...decisionLog, logEntry];
     setDecisionHistory(updatedHistory);
+    setDecisionLog(updatedLog);
     setMetrics(nextMetrics);
 
     setTimeout(() => {
-      if (isLastScenario(scenarioIndex)) {
-        onSessionComplete(updatedHistory);
+      if (!nextId) {
+        onSessionComplete(updatedHistory, updatedLog);
       } else {
-        setScenarioIndex((i) => i + 1);
+        setCurrentScenarioId(nextId);
       }
     }, 350);
   };
@@ -159,7 +175,7 @@ export function ScenarioEngine({ onSessionComplete }: Props) {
   };
 
   const preview = selectedAction
-    ? previewImpact(metrics, selectedAction, riskLevel, scenarioIndex)
+    ? previewImpact(metrics, selectedAction, riskLevel, ORDERED_IDS.indexOf(currentScenarioId))
     : undefined;
 
   const deltas = preview
@@ -180,7 +196,7 @@ export function ScenarioEngine({ onSessionComplete }: Props) {
       <div className="border-b border-border/60">
         <div className="px-6 py-4 grid grid-cols-3 items-center gap-6">
           <div className="text-[10px] tracking-[0.35em] font-mono-tabular text-muted-foreground">
-            SESSION <span className="text-foreground/80 ml-3">{scenarioIndex + 1}/{SCENARIOS.length}</span>
+            SESSION <span className="text-foreground/80 ml-3">{decisionHistory.filter(r => !r.isInterrupt).length + 1}</span>
           </div>
           <div className="flex justify-center gap-10">
             <SystemMetricDisplay label={METRIC_LABELS.stability} value={metrics.stability} delta={deltas?.stability} />
@@ -189,10 +205,16 @@ export function ScenarioEngine({ onSessionComplete }: Props) {
           </div>
           <div className="flex items-center justify-end gap-4 font-mono-tabular text-[10px] tracking-[0.3em]">
             <div className="flex gap-2 text-muted-foreground/50">
-              {SCENARIOS.map((_, i) => (
+              {ORDERED_IDS.map((id, i) => (
                 <span
-                  key={i}
-                  className={i === scenarioIndex ? "text-foreground" : i < scenarioIndex ? "text-foreground/50" : ""}
+                  key={id}
+                  className={
+                    id === currentScenarioId
+                      ? "text-foreground"
+                      : decisionHistory.some(r => r.scenarioId === id)
+                      ? "text-foreground/50"
+                      : ""
+                  }
                 >
                   {String(i + 1).padStart(2, "0")}
                 </span>
@@ -371,9 +393,9 @@ export function ScenarioEngine({ onSessionComplete }: Props) {
                     onChange={(e) => setRiskLevel(Number(e.target.value) / 100)}
                     className="relative w-full appearance-none bg-transparent h-6 cursor-pointer
                       [&::-webkit-slider-runnable-track]:h-6 [&::-webkit-slider-runnable-track]:bg-transparent
-                      [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-background [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-foreground/80
+                      [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-[0_0_8px_rgba(255,255,255,0.6)] [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-black/20 [&::-webkit-slider-thumb]:transition-transform hover:[&::-webkit-slider-thumb]:scale-110
                       [&::-moz-range-track]:h-6 [&::-moz-range-track]:bg-transparent
-                      [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-background [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-foreground/80"
+                      [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:shadow-[0_0_8px_rgba(255,255,255,0.6)] [&::-moz-range-thumb]:border [&::-moz-range-thumb]:border-black/20 [&::-moz-range-thumb]:transition-transform hover:[&::-moz-range-thumb]:scale-110"
                   />
                 </div>
                 <div className="flex justify-between mt-2 text-[10px] tracking-[0.35em] font-mono-tabular">

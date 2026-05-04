@@ -23,6 +23,8 @@ export interface Action {
   hint?: string;
   base: { stability: number; trust: number; buffer: number };
   riskCurve: { stability: number; trust: number; buffer: number };
+  next?: string;       // Target scenario ID — if absent, falls back to linear order
+  tags?: string[];     // Behavioral labels: "risk", "ethical", "avoid", "cautious", etc.
 }
 
 export interface Scenario {
@@ -51,6 +53,8 @@ export interface DecisionRecord {
   tag?: string;
   isInterrupt?: boolean;
   isPatternBreaker?: boolean;
+  nextScenarioId?: string; // Where this decision routed the session
+  tags?: string[];         // Behavioral tags from the chosen action
 }
 
 export interface InterruptEvent {
@@ -64,4 +68,17 @@ export interface InterruptEvent {
   }[];
 }
 
-export type SessionStage = "welcome" | "consent" | "classify" | "session" | "dashboard";
+export type SessionStage = "welcome" | "consent" | "onboarding" | "classify" | "session" | "dashboard";
+
+/**
+ * DecisionLogEntry
+ * Lightweight log of each decision — structured for future backend submission.
+ * Maintained independently of DecisionRecord (which serves metric calculation).
+ */
+export interface DecisionLogEntry {
+  stepId: string;      // Scenario ID
+  choice: string;      // Action ID selected
+  tags: string[];      // Behavioral tags from the action
+  timestamp: number;   // Unix ms
+  nextStepId: string | null; // Where the session routed after this choice
+}

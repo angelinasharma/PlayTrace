@@ -1,27 +1,65 @@
 /**
  * scenarioEngine.ts
- * Handles scenario sequence flow, mode transitions, and interrupt logic.
- * This is the authoritative source of truth for what happens next in the session.
+ * Navigation engine for the branching scenario graph.
+ *
+ * Key exports:
+ *   SCENARIO_MAP     → O(1) lookup of any scenario by ID
+ *   ORDERED_IDS      → Default linear fallback order (used when action.next is absent)
+ *   getNextScenarioId → Generic navigation function — no hardcoded if/else per step
  */
 
-import { SCENARIOS } from "@/scenarios/scenarioRegistry";
+import { ALL_SCENARIOS } from "@/scenarios/scenarioRegistry";
 import type { Scenario, Action, SystemMetrics } from "@/core/types";
 
-export function getScenario(index: number): Scenario {
-  return SCENARIOS[index];
+// ─── SCENARIO LOOKUP MAP ──────────────────────────────────────────────────────
+
+/** O(1) lookup by scenario ID. Covers all base + branch variant scenarios. */
+export const SCENARIO_MAP: Map<string, Scenario> = new Map(
+  ALL_SCENARIOS.map((s) => [s.id, s])
+);
+
+/**
+ * Default linear order — defines the fallback sequence for actions that
+ * do not specify a `next` ID. Branch variant IDs are not listed here;
+ * they always declare explicit `next` values on their actions.
+ */
+export const ORDERED_IDS: string[] = [
+  "s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9", "s10",
+];
+
+// ─── NAVIGATION ENGINE ────────────────────────────────────────────────────────
+
+/**
+ * Generic navigation function — the single source of routing truth.
+ *
+ * Priority:
+ *   1. action.next (explicit branch target)
+ *   2. Next ID in ORDERED_IDS (linear fallback)
+ *   3. null → session is complete
+ *
+ * No if/else chains per step. Adding a new branch = add action.next to the registry.
+ */
+export function getNextScenarioId(
+  currentScenario: Scenario,
+  chosenAction: Action
+): string | null {
+  // Explicit branch wins
+  if (chosenAction.next) return chosenAction.next;
+
+  // Linear fallback via ORDERED_IDS
+  const pos = ORDERED_IDS.indexOf(currentScenario.id);
+  if (pos >= 0 && pos < ORDERED_IDS.length - 1) {
+    return ORDERED_IDS[pos + 1];
+  }
+
+  // At s10 or unknown — session ends
+  return null;
 }
 
-export function totalScenarios(): number {
-  return SCENARIOS.length;
-}
-
-export function isLastScenario(index: number): boolean {
-  return index >= SCENARIOS.length - 1;
-}
+// ─── UTILITY FUNCTIONS ────────────────────────────────────────────────────────
 
 /**
  * Resolve which action to fall back to on timeout.
- * For ordered/allocation modes without a selected action, use last in list.
  */
 export function resolveTimeoutAction(scenario: Scenario, selectedAction: Action | null): Action {
   if (selectedAction) return selectedAction;

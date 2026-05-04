@@ -6,15 +6,18 @@
 
 import React from "react";
 import { computeBehaviorProfile } from "@/core/metricsCalculator";
-import type { DecisionRecord, UserType } from "@/core/types";
+import { FeedbackInline } from "@/ui/FeedbackInline";
+import type { DecisionRecord, DecisionLogEntry, UserType } from "@/core/types";
 
 interface Props {
   records: DecisionRecord[];
+  decisionLog: DecisionLogEntry[]; // Full behavioral log — ready for backend submission
+  sessionId: string;
   userType: UserType;
   onRestart: () => void;
 }
 
-export function BehaviorDashboard({ records, userType, onRestart }: Props) {
+export function BehaviorDashboard({ records, decisionLog: _decisionLog, sessionId, userType, onRestart }: Props) {
   const profile = computeBehaviorProfile(records);
   const scenarioRecords = records.filter((r) => !r.isInterrupt);
 
@@ -49,6 +52,8 @@ export function BehaviorDashboard({ records, userType, onRestart }: Props) {
       <ReportSection title="Decision Time Variation">
         <DecisionTimeChart records={scenarioRecords} />
       </ReportSection>
+
+      <FeedbackInline sessionId={sessionId} />
 
       <button
         onClick={onRestart}
