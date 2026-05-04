@@ -1,4 +1,4 @@
-import { connectDB } from "../lib/mongodb";
+import clientPromise from "../lib/mongodb.js";
 
 /**
  * API Route: /api/test-db
@@ -6,7 +6,8 @@ import { connectDB } from "../lib/mongodb";
  */
 export default async function handler(req: any, res: any) {
   try {
-    const db = await connectDB();
+    const client = await clientPromise;
+    const db = client.db();
     const collection = db.collection("test");
 
     const result = await collection.insertOne({
