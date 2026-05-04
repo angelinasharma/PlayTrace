@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-interface Props { onContinue: () => void }
+interface Props { onContinue: (agreed: boolean) => void }
 
 const POINTS = [
   "Your response times, dial positions, and action choices will be recorded throughout the session.",
@@ -35,9 +35,8 @@ export function Consent({ onContinue }: Props) {
         </label>
 
         <button
-          onClick={onContinue}
-          disabled={!agreed}
-          className="inline-flex items-center justify-center border border-foreground/25 px-10 py-3 text-xs tracking-[0.35em] font-mono-tabular text-foreground/70 disabled:opacity-30 disabled:cursor-not-allowed enabled:hover:border-foreground enabled:hover:text-foreground transition-colors"
+          onClick={() => onContinue(agreed)}
+          className="inline-flex items-center justify-center border border-foreground/25 px-10 py-3 text-xs tracking-[0.35em] font-mono-tabular text-foreground/70 transition-colors hover:border-foreground hover:text-foreground"
         >
           CONTINUE
         </button>

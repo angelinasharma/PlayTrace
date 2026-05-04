@@ -4,6 +4,8 @@ import { adaptTimeLimit, applyImpact, DecisionRecord, INITIAL_STATE, previewImpa
 import { InterruptOverlay } from "./InterruptOverlay";
 
 interface Props {
+  sessionId?: string | null;
+  profileType?: string;
   onDone: (records: DecisionRecord[]) => void;
 }
 
@@ -13,7 +15,7 @@ const LABELS: Record<keyof SystemState, string> = {
   time: "BUFFER",
 };
 
-export function Session({ onDone }: Props) {
+export function Session({ sessionId, profileType, onDone }: Props) {
   const [state, setState] = useState<SystemState>(INITIAL_STATE);
   const [idx, setIdx] = useState(0);
   const [risk, setRisk] = useState(0.5);
@@ -98,6 +100,28 @@ export function Session({ onDone }: Props) {
     };
     setRecords(rs => [...rs, rec]);
     setState(after);
+
+    if (sessionId) {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      fetch(`${API_URL}/api/sessions/${sessionId}/decisions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId,
+          profileType: profileType || "Minimal",
+          levelId: scenario.id,
+          phase: idx + 1,
+          decision: a.label,
+          decisionType: r > 0.6 ? 'risky' : r < 0.4 ? 'safe' : 'neutral',
+          decisionTime: rec.decisionTimeMs,
+          energy: after.stability,
+          supplies: after.trust,
+          morale: after.time,
+          riskLevel: r * 100
+        })
+      }).catch(e => console.error(e));
+    }
+
     setTimeout(() => {
       if (idx + 1 >= SCENARIOS.length) onDone([...records, rec]);
       else { setIdx(i => i + 1); }
@@ -114,11 +138,34 @@ export function Session({ onDone }: Props) {
       time: clamp(before.time + opt.impact.time),
     };
     setState(after);
-    setRecords(rs => [...rs, {
+    const rec = {
       scenarioId: interrupt.id, actionId: opt.id, risk: 0.5,
       decisionTimeMs: 0, hesitationMs: 0, committed: true, pressure: 0,
       stateBefore: before, stateAfter: after, isInterrupt: true,
-    }]);
+    };
+    setRecords(rs => [...rs, rec]);
+
+    if (sessionId) {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      fetch(`${API_URL}/api/sessions/${sessionId}/decisions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId,
+          profileType: profileType || "Minimal",
+          levelId: interrupt.id,
+          phase: idx + 1,
+          decision: opt.label,
+          decisionType: 'neutral',
+          decisionTime: 0,
+          energy: after.stability,
+          supplies: after.trust,
+          morale: after.time,
+          riskLevel: 50
+        })
+      }).catch(e => console.error(e));
+    }
+
     setInterrupt(null);
   };
 
