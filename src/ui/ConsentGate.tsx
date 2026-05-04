@@ -40,11 +40,10 @@ export function ConsentGate({ onConsent }: Props) {
 
         <label className="flex items-center gap-3 cursor-pointer group mb-8 select-none">
           <span
-            className={`w-4 h-4 border ${
-              agreed
+            className={`w-4 h-4 border ${agreed
                 ? "bg-primary border-primary"
                 : "border-foreground/40 group-hover:border-foreground/70"
-            } flex items-center justify-center transition-colors`}
+              } flex items-center justify-center transition-colors`}
           >
             {agreed && <span className="text-primary-foreground text-[10px] leading-none">✓</span>}
           </span>
