@@ -4,7 +4,6 @@ An interactive behavioral research system designed to study how individuals make
 
 Instead of static surveys, this system places users inside a dynamic environment where they must respond to evolving situations in real time. Every action, delay, and adjustment is recorded and translated into measurable behavioral patterns.
 
----
 
 ## Overview
 
@@ -17,7 +16,6 @@ Decision Engine simulates high-pressure scenarios where users must:
 
 The system captures not just *what* users choose, but *how* they arrive at those decisions.
 
----
 
 ## Core Idea
 
@@ -35,7 +33,6 @@ By embedding users in a controlled decision environment, we can measure:
 - adaptability after consequences  
 - decision conflict under uncertainty  
 
----
 
 ## Features
 
