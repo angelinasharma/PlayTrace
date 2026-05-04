@@ -13,17 +13,17 @@ const SCREENS = [
   {
     eyebrow: "ARRIVAL",
     headline: "Your first day.",
-    body: "You’ve just arrived. The air is still, but the desk is crowded. This is where it begins. Take a moment to settle in.",
+    body: "You just started. The desk is already busy. This is where the day begins.",
   },
   {
-    eyebrow: "NAVIGATION",
+    eyebrow: "HOW IT WORKS",
     headline: "Choice. Not solution.",
-    body: "The day will unfold through the decisions you make. There are no right paths, only the ones you take. Move with your own rhythm.",
+    body: "You'll move through situations that come up at work. Pick what feels right to you. There's no correct answer.",
   },
   {
-    eyebrow: "CALIBRATION",
+    eyebrow: "THE DIAL",
     headline: "Intent. Weight. Commitment.",
-    body: "Some moments require weight. Others need speed. Adjust the dial below to find the tension, then seal your choice.",
+    body: "Before you commit, you can adjust how you want to approach it. Try the dial below, then continue when you're ready.",
   },
 ];
 

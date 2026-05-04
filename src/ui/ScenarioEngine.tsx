@@ -49,6 +49,7 @@ export function ScenarioEngine({ sessionId, onSessionComplete }: Props) {
   const [isCommitting, setIsCommitting] = useState(false);
   const [reversalBlockedId, setReversalBlockedId] = useState<string | null>(null);
   const [priorityOrdering, setPriorityOrdering] = useState<Action[]>([]);
+  const [timerExpired, setTimerExpired] = useState(false);
 
   const scenario = SCENARIO_MAP.get(currentScenarioId)!;
   const timeLimit = useMemo(() => adaptTimeLimit(scenario.timeLimit, metrics), [scenario, currentScenarioId]);
@@ -61,6 +62,7 @@ export function ScenarioEngine({ sessionId, onSessionComplete }: Props) {
   useEffect(() => {
     setRiskLevel(0.5);
     setRemainingTime(timeLimit);
+    setTimerExpired(false);
     sessionStartRef.current = performance.now();
     dialEngagedRef.current = 0;
     setReversalBlockedId(null);
@@ -79,13 +81,12 @@ export function ScenarioEngine({ sessionId, onSessionComplete }: Props) {
     return () => clearInterval(decayTimer);
   }, [activeInterrupt, isCommitting]);
 
-  // Timeout handler
+  // Soft timeout — mark expired, do NOT force a selection
   useEffect(() => {
-    if (remainingTime === 0 && !isCommitting) {
-      const fallback = resolveTimeoutAction(scenario, selectedAction);
-      commitDecision(fallback, selectedAction ? riskLevel : 0.5, true);
+    if (remainingTime === 0 && !isCommitting && !timerExpired) {
+      setTimerExpired(true);
     }
-  }, [remainingTime, isCommitting]);
+  }, [remainingTime, isCommitting, timerExpired]);
 
   const selectIntent = (action: Action) => {
     if (scenario.mode === "reversal" && !reversalBlockedId) {
@@ -232,8 +233,42 @@ export function ScenarioEngine({ sessionId, onSessionComplete }: Props) {
                 </span>
               ))}
             </div>
-            <div className="text-base text-foreground font-medium tabular-nums w-12 text-right">
-              {Math.ceil(remainingTime)}s
+            {/* Timer: text countdown + color bar */}
+            <div className="flex flex-col items-end gap-1.5">
+              {timerExpired ? (
+                <div className="text-[9px] tracking-[0.2em] text-muted-foreground/40 font-mono-tabular">
+                  take your time
+                </div>
+              ) : (
+                <div
+                  className="text-base font-medium tabular-nums font-mono-tabular transition-colors"
+                  style={{
+                    color: remainingTime / timeLimit < 0.25
+                      ? "hsl(0 78% 58%)"
+                      : remainingTime / timeLimit < 0.5
+                      ? "hsl(38 92% 58%)"
+                      : "hsl(var(--foreground))",
+                  }}
+                >
+                  {Math.ceil(remainingTime)}s
+                </div>
+              )}
+              <div className="w-20 h-[3px] bg-secondary overflow-hidden rounded-full">
+                <div
+                  className="h-full rounded-full transition-all duration-200"
+                  style={{
+                    width: `${(remainingTime / timeLimit) * 100}%`,
+                    backgroundColor: timerExpired
+                      ? "hsl(0 78% 58%)"
+                      : remainingTime / timeLimit < 0.25
+                      ? `hsl(${Math.round((remainingTime / timeLimit) * 4 * 38)} 90% 58%)`
+                      : remainingTime / timeLimit < 0.5
+                      ? "hsl(38 92% 58%)"
+                      : "hsl(152 76% 52%)",
+                    opacity: timerExpired ? 0.4 : 1,
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>

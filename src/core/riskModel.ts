@@ -128,7 +128,7 @@ export function previewImpact(
  */
 export function adaptTimeLimit(baseSeconds: number, current: SystemMetrics): number {
   const pressure = (100 - current.buffer) / 100;
-  return Math.max(5, Math.round(baseSeconds * (1 - pressure * 0.4)));
+  return Math.max(10, Math.round(baseSeconds * (1 - pressure * 0.4)));
 }
 
 export function clampMetrics(metrics: SystemMetrics): SystemMetrics {
