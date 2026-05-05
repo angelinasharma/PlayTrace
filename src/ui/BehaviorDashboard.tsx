@@ -4,15 +4,16 @@
  * Renders computed profile metrics and visual decision traces.
  */
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { computeBehaviorProfile } from "@/core/metricsCalculator";
 import { FeedbackInline } from "@/ui/FeedbackInline";
+import { getSessionResults } from "@/lib/api";
 import type { DecisionRecord, DecisionLogEntry, UserType } from "@/core/types";
 
 interface Props {
   records: DecisionRecord[];
   decisionLog: DecisionLogEntry[]; // Full behavioral log — ready for backend submission
-  sessionId: string;
+  sessionId: string | null;
   userType: UserType;
   onRestart: () => void;
 }
@@ -20,6 +21,20 @@ interface Props {
 export function BehaviorDashboard({ records, decisionLog: _decisionLog, sessionId, userType, onRestart }: Props) {
   const profile = computeBehaviorProfile(records);
   const scenarioRecords = records.filter((r) => !r.isInterrupt);
+  const [sessionData, setSessionData] = useState<any>(null);
+
+  useEffect(() => {
+    async function loadData() {
+      if (sessionId) {
+        const data = await getSessionResults(sessionId);
+        setSessionData(data);
+      }
+    }
+    loadData();
+  }, [sessionId]);
+
+  const metrics = sessionData?.metrics;
+  const summary = sessionData?.summary;
 
   return (
     <div className="min-h-screen px-6 py-12 max-w-5xl mx-auto">
@@ -27,14 +42,24 @@ export function BehaviorDashboard({ records, decisionLog: _decisionLog, sessionI
       <h1 className="text-3xl md:text-4xl font-light mb-1">{profile.strategyLabel}</h1>
       <div className="text-sm text-muted-foreground mb-12">Profile: {userType}</div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-px bg-border mb-12">
-        <MetricCell label="Avg Decision Time" value={`${(profile.avgDecisionTimeMs / 1000).toFixed(1)}s`} />
-        <MetricCell label="Risk Preference" value={`${Math.round(profile.riskPreference * 100)}%`} />
-        <MetricCell label="Consistency" value={`${Math.round(profile.consistency * 100)}%`} />
-        <MetricCell label="Adaptability" value={`${Math.round(profile.adaptability * 100)}%`} />
-        <MetricCell label="Confidence Gap" value={`${Math.round(profile.confidenceGap * 100)}%`} />
-        <MetricCell label="Decision Conflict" value={`${Math.round(profile.decisionConflict * 100)}%`} />
-      </div>
+      {metrics && (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-px bg-border mb-12">
+          <MetricCell label="Avg Decision Time" value={`${(metrics.avgDecisionTime / 1000).toFixed(1)}s`} />
+          <MetricCell label="Avg Hesitation" value={`${(metrics.avgHesitation / 1000).toFixed(1)}s`} />
+          <MetricCell label="Risk Score" value={`${Math.round(metrics.riskScore * 100)}%`} />
+          <MetricCell label="Consistency Score" value={`${Math.round(metrics.consistencyScore * 100)}%`} />
+          <MetricCell label="Variance" value={`${(metrics.variance / 1000000).toFixed(2)}s²`} />
+          <MetricCell label="Pressure Sensitivity" value={`${Math.round(metrics.pressureSensitivity * 100)}%`} />
+        </div>
+      )}
+
+      {summary && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-border mb-12">
+          <MetricCell label="Highest Risk Decision" value={summary.highestRiskDecision} />
+          <MetricCell label="Longest Pause" value={summary.longestPause} />
+          <MetricCell label="Biggest Behavior Shift" value={summary.biggestBehaviorShift} />
+        </div>
+      )}
 
       <div className="border-l-2 border-primary pl-4 mb-12">
         <div className="text-[10px] tracking-[0.3em] text-muted-foreground mb-2">INSIGHT</div>
@@ -53,7 +78,7 @@ export function BehaviorDashboard({ records, decisionLog: _decisionLog, sessionI
         <DecisionTimeChart records={scenarioRecords} />
       </ReportSection>
 
-      <FeedbackInline sessionId={sessionId} />
+      {sessionId && <FeedbackInline sessionId={sessionId} />}
 
       <button
         onClick={onRestart}

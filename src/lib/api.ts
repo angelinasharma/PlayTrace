@@ -25,6 +25,10 @@ export async function logDecision(payload: {
   stepId: string;
   decision: string;
   tags?: string[];
+  scenarioText?: string;
+  decisionText?: string;
+  hesitationMs?: number;
+  decisionTimeMs?: number;
 }) {
   try {
     // Fire-and-forget pattern
@@ -53,5 +57,30 @@ export async function submitFeedback(payload: {
   } catch (error) {
     console.error('API Error (submitFeedback):', error);
     return false;
+  }
+}
+
+export async function completeSession(sessionId: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${BASE_URL}/api/complete-session`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId }),
+    });
+    return res.ok;
+  } catch (error) {
+    console.error('API Error (completeSession):', error);
+    return false;
+  }
+}
+
+export async function getSessionResults(sessionId: string): Promise<any> {
+  try {
+    const res = await fetch(`${BASE_URL}/api/get-results?sessionId=${sessionId}`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (error) {
+    console.error('API Error (getSessionResults):', error);
+    return null;
   }
 }

@@ -15,7 +15,7 @@ import { OnboardingFlow } from "@/ui/OnboardingFlow";
 import { ParticipantClassifier } from "@/ui/ParticipantClassifier";
 import { ScenarioEngine } from "@/ui/ScenarioEngine";
 import { BehaviorDashboard } from "@/ui/BehaviorDashboard";
-import { startSession } from "@/lib/api";
+import { startSession, completeSession } from "@/lib/api";
 import type { DecisionRecord, DecisionLogEntry, SessionStage, UserType } from "@/core/types";
 
 function classifyUserType(hours: string, background: string): UserType {
@@ -43,9 +43,12 @@ export function DecisionEngine() {
     setStage("session");
   };
 
-  const handleSessionComplete = (records: DecisionRecord[], log: DecisionLogEntry[]) => {
+  const handleSessionComplete = async (records: DecisionRecord[], log: DecisionLogEntry[]) => {
     setSessionRecords(records);
     setSessionLog(log);
+    if (sessionId) {
+      await completeSession(sessionId);
+    }
     setStage("dashboard");
   };
 

@@ -6,7 +6,7 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { sessionId, stepId, decision, tags } = req.body;
+  const { sessionId, stepId, decision, tags, scenarioText, decisionText, hesitationMs, decisionTimeMs } = req.body;
 
   if (!sessionId || !stepId || !decision) {
     return res.status(400).json({ error: 'Missing required fields' });
@@ -21,6 +21,10 @@ export default async function handler(req: any, res: any) {
       stepId,
       decision,
       tags,
+      scenarioText: scenarioText ?? null,
+      decisionText: decisionText ?? null,
+      hesitationMs: hesitationMs ?? null,
+      decisionTimeMs: decisionTimeMs ?? null,
       timestamp: new Date()
     });
 

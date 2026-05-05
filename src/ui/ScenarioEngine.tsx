@@ -142,6 +142,10 @@ export function ScenarioEngine({ sessionId, onSessionComplete }: Props) {
         stepId: scenario.id,
         decision: action.id,
         tags: action.tags,
+        scenarioText: scenarioText,
+        decisionText: action.label,
+        hesitationMs: record.hesitationMs,
+        decisionTimeMs: record.decisionTimeMs,
       });
     }
 
